@@ -1,0 +1,8 @@
+{
+  "name": "Coq",
+  "image": "coqorg/coq",
+  "extensions": ["maximedenes.vscoq"],
+  "settings": {
+    "terminal.integrated.defaultProfile.linux": "bash"
+  }
+}
