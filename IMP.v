@@ -48,4 +48,40 @@ Example test_beval :
     beval (BAnd BTrue (BEq (ANum 2) (ANum 3))) = false.
 Proof. reflexivity. Qed.
 
+Fixpoint optimize_0Plus (a:aexp) : aexp :=
+    match a with
+    | ANum n => ANum n
+    | APlus (ANum 0) a2 => optimize_0Plus a2
+    | APlus a1 a2 => APlus (optimize_0Plus a1) (optimize_0Plus a2)
+    | AMinus a1 a2 => AMinus (optimize_0Plus a1) (optimize_0Plus a2)
+    | AMult a1 a2 => AMult (optimize_0Plus a1) (optimize_0Plus a2)
+    end.
+
+Theorem optimize_0Plus_sound: forall a,
+    aeval (optimize_0Plus a) = aeval a.
+Proof.
+    intros a.
+    induction a.
+    - simpl. reflexivity.
+    - destruct a1.
+      + destruct n.
+        * simpl. rewrite IHa2. reflexivity.
+        * simpl. rewrite IHa2. reflexivity.
+      + simpl. simpl in IHa1.
+        rewrite IHa1. rewrite IHa2.
+        reflexivity.
+      + simpl. simpl in IHa1.
+        rewrite IHa1. rewrite IHa2.
+        reflexivity.
+      + simpl. simpl in IHa1.
+        rewrite IHa1. rewrite IHa2.
+        reflexivity.
+    - simpl.
+      rewrite IHa1. rewrite IHa2.
+      reflexivity.
+    - simpl.
+      rewrite IHa1. rewrite IHa2.
+      reflexivity.
+Qed.
+
 End AExp.
