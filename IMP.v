@@ -61,27 +61,16 @@ Theorem optimize_0Plus_sound: forall a,
     aeval (optimize_0Plus a) = aeval a.
 Proof.
     intros a.
-    induction a.
-    - simpl. reflexivity.
-    - destruct a1.
-      + destruct n.
-        * simpl. rewrite IHa2. reflexivity.
-        * simpl. rewrite IHa2. reflexivity.
-      + simpl. simpl in IHa1.
-        rewrite IHa1. rewrite IHa2.
-        reflexivity.
-      + simpl. simpl in IHa1.
-        rewrite IHa1. rewrite IHa2.
-        reflexivity.
-      + simpl. simpl in IHa1.
-        rewrite IHa1. rewrite IHa2.
-        reflexivity.
-    - simpl.
-      rewrite IHa1. rewrite IHa2.
-      reflexivity.
-    - simpl.
-      rewrite IHa1. rewrite IHa2.
-      reflexivity.
+    induction a;
+    try (simpl; rewrite IHa1; rewrite IHa2; reflexivity).
+    - (* ANum *)
+      simpl. reflexivity.
+    - (* APlus *)
+      destruct a1;
+      try (simpl; simpl in IHa1; rewrite IHa1; rewrite IHa2; reflexivity).
+      + (* ANum *)
+        destruct n;
+        try (simpl; rewrite IHa2; reflexivity).
 Qed.
 
 End AExp.
