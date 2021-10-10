@@ -73,4 +73,23 @@ Proof.
         try (simpl; rewrite IHa2; reflexivity).
 Qed.
 
+Reserved Notation "e '==>' n" (at level 90, left associativity).
+
+Inductive aevalR : aexp -> nat -> Prop :=
+    | E_ANum (n : nat) :
+        (ANum n) ==> n
+    | E_APlus (e1 e2 : aexp) (n1 n2 : nat) :
+        (e1 ==> n1) ->
+        (e2 ==> n2) ->
+        (APlus e1 e2) ==> (n1 + n2)
+    | E_AMinus (e1 e2 : aexp) (n1 n2 : nat) :
+        (e1 ==> n1) ->
+        (e2 ==> n2) ->
+        (AMinus e1 e2) ==> (n1 - n2)
+    | E_AMult (e1 e2 : aexp) (n1 n2 : nat) :
+        (e1 ==> n1) ->
+        (e2 ==> n2) ->
+        (AMult e1 e2) ==> (n1 * n2)
+    where "e '==>' n" := (aevalR e n) : type_scope.
+
 End AExp.
