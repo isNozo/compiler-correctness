@@ -92,4 +92,42 @@ Inductive aevalR : aexp -> nat -> Prop :=
         (AMult e1 e2) ==> (n1 * n2)
     where "e '==>' n" := (aevalR e n) : type_scope.
 
+Theorem aeval_iff_aevalR : forall a n,
+    (a ==> n) <-> aeval a = n.
+Proof.
+    split.
+    - intros H; induction H; subst; reflexivity.
+    - generalize dependent n.
+      induction a; simpl; intros; subst; constructor;
+      try apply IHa1; try apply IHa2; reflexivity.
+Qed.
+
+Inductive bevalR : bexp -> bool -> Prop :=
+    | E_BTrue :
+        bevalR BTrue true
+    | E_BFalse :
+        bevalR BFalse false
+    | E_BEq (e1 e2 : aexp) (n1 n2 : nat) :
+        (aevalR e1 n1) ->
+        (aevalR e2 n2) ->
+        bevalR (BEq e1 e2) (n1 =? n2)
+    | E_BLe (e1 e2 : aexp) (n1 n2 : nat) :
+        (aevalR e1 n1) ->
+        (aevalR e2 n2) ->
+        bevalR (BLe e1 e2) (n1 =? n2)
+    | E_BNot (e : bexp) (b : bool) :
+        (bevalR e b) ->
+        bevalR (BNot e) (negb b)
+    | E_BAnd (e1 e2 : bexp) (b1 b2 : bool) :
+        (bevalR e1 b1) ->
+        (bevalR e2 b2) ->
+        bevalR (BAnd e1 e2) (andb b1 b2).
+
+Theorem beval_iff_bevalR : forall e b,
+    (bevalR e b) <-> beval e = b.
+Proof.
+    split.
+    - intros H; induction H; subst; try reflexivity.
+Abort.
+
 End AExp.
