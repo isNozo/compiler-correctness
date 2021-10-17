@@ -69,14 +69,18 @@ Notation "x '!->' v ';' m" := (t_update m x v)
 
 End Maps.
 
+
+
 Import Maps.
 
 Module AExp.
 
 Definition state := total_map nat.
+Definition empty_st := (_ !-> 0).
 
 Inductive aexp : Type :=
     | ANum (n : nat)
+    | AId (x : string)
     | APlus (a1 a2 : aexp)
     | AMinus (a1 a2 : aexp)
     | AMult (a1 a2 : aexp).
@@ -89,56 +93,53 @@ Inductive bexp : Type :=
     | BNot (b : bexp)
     | BAnd (b1 b2 : bexp).
 
-Fixpoint aeval (a : aexp) : nat :=
+Definition W : string := "W".
+Definition X : string := "X".
+Definition Y : string := "Y".
+Definition Z : string := "Z".
+
+Coercion AId : string >-> aexp.
+Coercion ANum : nat >-> aexp.
+Declare Custom Entry com.
+Declare Scope com_scope.
+Notation "<{ e }>" := e (at level 0, e custom com at level 99) : com_scope.
+Notation "( x )" := x (in custom com, x at level 99) : com_scope.
+Notation "x" := x (in custom com at level 0, x constr at level 0) : com_scope.
+Notation "f x .. y" := (.. (f x) .. y)
+                    (in custom com at level 0, only parsing,
+                    f constr at level 0, x constr at level 9,
+                    y constr at level 9) : com_scope.
+Notation "x + y" := (APlus x y) (in custom com at level 50, left associativity).
+Notation "x - y" := (AMinus x y) (in custom com at level 50, left associativity).
+Notation "x * y" := (AMult x y) (in custom com at level 40, left associativity).
+Notation "'true'" := true (at level 1).
+Notation "'true'" := BTrue (in custom com at level 0).
+Notation "'false'" := false (at level 1).
+Notation "'false'" := BFalse (in custom com at level 0).
+Notation "x <= y" := (BLe x y) (in custom com at level 70, no associativity).
+Notation "x = y" := (BEq x y) (in custom com at level 70, no associativity).
+Notation "x && y" := (BAnd x y) (in custom com at level 80, left associativity).
+Notation "'~' b" := (BNot b) (in custom com at level 75, right associativity).
+Open Scope com_scope.
+
+Fixpoint aeval (st : state) (a : aexp) : nat :=
     match a with
     | ANum n => n
-    | APlus a1 a2 => (aeval a1) + (aeval a2)
-    | AMinus a1 a2 => (aeval a1) - (aeval a2)
-    | AMult a1 a2 => (aeval a1) * (aeval a2)
+    | AId x => st x
+    | <{a1 + a2}> => (aeval st a1) + (aeval st a2)
+    | <{a1 - a2}> => (aeval st a1) - (aeval st a2)
+    | <{a1 * a2}> => (aeval st a1) * (aeval st a2)
     end.
 
-Example test_aeval : 
-    aeval (APlus (ANum 1) (AMult (ANum 2) (ANum 3))) = 7.
-Proof. reflexivity. Qed.
-
-Fixpoint beval (b : bexp) : bool :=
+Fixpoint beval (st : state) (b : bexp) : bool :=
     match b with
-    | BTrue => true
-    | BFalse => false
-    | BEq a1 a2 => (aeval a1) =? (aeval a2)
-    | BLe a1 a2 => (aeval a1) <=? (aeval a2)
-    | BNot b => negb (beval b)
-    | BAnd b1 b2 => andb (beval b1) (beval b2)
+    | <{true}> => true
+    | <{false}> => false
+    | <{a1 = a2}> => (aeval st a1) =? (aeval st a2)
+    | <{a1 <= a2}> => (aeval st a1) <=? (aeval st a2)
+    | <{~ b}> => negb (beval st b)
+    | <{b1 && b2}> => andb (beval st b1) (beval st b2)
     end.
-
-Example test_beval : 
-    beval (BAnd BTrue (BEq (ANum 2) (ANum 3))) = false.
-Proof. reflexivity. Qed.
-
-Fixpoint optimize_0Plus (a:aexp) : aexp :=
-    match a with
-    | ANum n => ANum n
-    | APlus (ANum 0) a2 => optimize_0Plus a2
-    | APlus a1 a2 => APlus (optimize_0Plus a1) (optimize_0Plus a2)
-    | AMinus a1 a2 => AMinus (optimize_0Plus a1) (optimize_0Plus a2)
-    | AMult a1 a2 => AMult (optimize_0Plus a1) (optimize_0Plus a2)
-    end.
-
-Theorem optimize_0Plus_sound: forall a,
-    aeval (optimize_0Plus a) = aeval a.
-Proof.
-    intros a.
-    induction a;
-    try (simpl; rewrite IHa1; rewrite IHa2; reflexivity).
-    - (* ANum *)
-      simpl. reflexivity.
-    - (* APlus *)
-      destruct a1;
-      try (simpl; simpl in IHa1; rewrite IHa1; rewrite IHa2; reflexivity).
-      + (* ANum *)
-        destruct n;
-        try (simpl; rewrite IHa2; reflexivity).
-Qed.
 
 Reserved Notation "e '==>' n" (at level 90, left associativity).
 
