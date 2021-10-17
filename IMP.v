@@ -6,7 +6,74 @@ From Coq Require Import Lia.
 From Coq Require Import Lists.List. Import ListNotations.
 From Coq Require Import Strings.String.
 
+Module Maps.
+
+Definition eqb_string (x y : string) : bool :=
+    if string_dec x y then true else false.
+
+Theorem eqb_str_ref: forall s : string,
+    true = eqb_string s s.
+Proof.
+    intros s.
+    unfold eqb_string.
+    destruct (string_dec s s) as [Heq|Hnoteq].
+    - reflexivity.
+    - unfold not in Hnoteq.
+      assert (H:s=s). { reflexivity. }
+      apply Hnoteq in H.
+      destruct H.
+Qed.
+
+Theorem eqb_string_true_iff : forall x y : string,
+    eqb_string x y = true <-> x = y.
+Proof.
+    intros x y.
+    unfold eqb_string.
+    destruct (string_dec x y) as [Heq|Hneq].
+    - split.
+      + intros. apply Heq.
+      + intros. reflexivity.
+    - split.
+      + intros. discriminate H.
+      + intros. unfold not in Hneq. apply Hneq in H. destruct H.
+Qed.
+
+Theorem eqb_string_false_iff : forall x y : string,
+    eqb_string x y = false <-> x <> y.
+Proof.
+    intros x y.
+    unfold eqb_string.
+    destruct (string_dec x y) as [Heq|Hneq].
+    - split.
+      + intros. discriminate H.
+      + intros. apply H in Heq. destruct Heq.
+    - split.
+      + intros. apply Hneq.
+      + intros. reflexivity.
+Qed.
+
+Definition total_map (A : Type) := string -> A.
+
+Definition t_empty {A : Type} (v : A) : total_map A :=
+    (fun _ => v).
+
+Definition t_update {A : Type} (m : total_map A)
+                    (x : string) (v : A) :=
+    fun x' => if eqb_string x x' then v else m x'.
+
+Notation "'_' '!->' v" := (t_empty v)
+    (at level 100, right associativity).
+
+Notation "x '!->' v ';' m" := (t_update m x v)
+    (at level 100, v at next level, right associativity).
+
+End Maps.
+
+Import Maps.
+
 Module AExp.
+
+Definition state := total_map nat.
 
 Inductive aexp : Type :=
     | ANum (n : nat)
@@ -171,64 +238,5 @@ Proof.
       + rewrite <- H. simpl. constructor. apply beval_l1.
       + rewrite <- H. simpl. constructor; apply beval_l1.
 Qed.
-
-Definition eqb_string (x y : string) : bool :=
-    if string_dec x y then true else false.
-
-Theorem eqb_str_ref: forall s : string,
-    true = eqb_string s s.
-Proof.
-    intros s.
-    unfold eqb_string.
-    destruct (string_dec s s) as [Heq|Hnoteq].
-    - reflexivity.
-    - unfold not in Hnoteq.
-      assert (H:s=s). { reflexivity. }
-      apply Hnoteq in H.
-      destruct H.
-Qed.
-
-Theorem eqb_string_true_iff : forall x y : string,
-    eqb_string x y = true <-> x = y.
-Proof.
-    intros x y.
-    unfold eqb_string.
-    destruct (string_dec x y) as [Heq|Hneq].
-    - split.
-      + intros. apply Heq.
-      + intros. reflexivity.
-    - split.
-      + intros. discriminate H.
-      + intros. unfold not in Hneq. apply Hneq in H. destruct H.
-Qed.
-
-Theorem eqb_string_false_iff : forall x y : string,
-    eqb_string x y = false <-> x <> y.
-Proof.
-    intros x y.
-    unfold eqb_string.
-    destruct (string_dec x y) as [Heq|Hneq].
-    - split.
-      + intros. discriminate H.
-      + intros. apply H in Heq. destruct Heq.
-    - split.
-      + intros. apply Hneq.
-      + intros. reflexivity.
-Qed.
-
-Definition total_map (A : Type) := string -> A.
-
-Definition t_empty {A : Type} (v : A) : total_map A :=
-    (fun _ => v).
-
-Definition t_update {A : Type} (m : total_map A)
-                    (x : string) (v : A) :=
-    fun x' => if eqb_string x x' then v else m x'.
-
-Notation "'_' '!->' v" := (t_empty v)
-    (at level 100, right associativity).
-
-Notation "x '!->' v ';' m" := (t_update m x v)
-    (at level 100, v at next level, right associativity).
 
 End AExp.
