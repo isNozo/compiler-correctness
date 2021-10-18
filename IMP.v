@@ -141,103 +141,38 @@ Fixpoint beval (st : state) (b : bexp) : bool :=
     | <{b1 && b2}> => andb (beval st b1) (beval st b2)
     end.
 
-Reserved Notation "e '==>' n" (at level 90, left associativity).
+Inductive com : Type :=
+    | CSkip
+    | CAsign (x : string) (a : aexp)
+    | CSeq (c1 c2 : com)
+    | CIf (b : bexp) (c1 c2 : com)
+    | CWhile (b : bexp) (c : com).
 
-Inductive aevalR : aexp -> nat -> Prop :=
-    | E_ANum (n : nat) :
-        (ANum n) ==> n
-    | E_APlus (e1 e2 : aexp) (n1 n2 : nat) :
-        (e1 ==> n1) ->
-        (e2 ==> n2) ->
-        (APlus e1 e2) ==> (n1 + n2)
-    | E_AMinus (e1 e2 : aexp) (n1 n2 : nat) :
-        (e1 ==> n1) ->
-        (e2 ==> n2) ->
-        (AMinus e1 e2) ==> (n1 - n2)
-    | E_AMult (e1 e2 : aexp) (n1 n2 : nat) :
-        (e1 ==> n1) ->
-        (e2 ==> n2) ->
-        (AMult e1 e2) ==> (n1 * n2)
-    where "e '==>' n" := (aevalR e n) : type_scope.
+Notation "'skip'" :=
+        CSkip (in custom com at level 0) : com_scope.
+Notation "x := y" :=
+        (CAsign x y)
+           (in custom com at level 0, x constr at level 0,
+            y at level 85, no associativity) : com_scope.
+Notation "x ; y" :=
+        (CSeq x y)
+          (in custom com at level 90, right associativity) : com_scope.
+Notation "'if' x 'then' y 'else' z 'end'" :=
+        (CIf x y z)
+          (in custom com at level 89, x at level 99,
+           y at level 99, z at level 99) : com_scope.
+Notation "'while' x 'do' y 'end'" :=
+        (CWhile x y)
+           (in custom com at level 89, x at level 99, y at level 99) : com_scope.
 
-Theorem aeval_iff_aevalR : forall a n,
-    (a ==> n) <-> aeval a = n.
-Proof.
-    split.
-    - intros H; induction H; subst; reflexivity.
-    - generalize dependent n.
-      induction a; simpl; intros; subst; constructor;
-      try apply IHa1; try apply IHa2; reflexivity.
-Qed.
-
-Inductive bevalR : bexp -> bool -> Prop :=
-    | E_BTrue :
-        bevalR BTrue true
-    | E_BFalse :
-        bevalR BFalse false
-    | E_BEq (a1 a2 : aexp) (n1 n2 : nat) :
-        (aevalR a1 n1) ->
-        (aevalR a2 n2) ->
-        bevalR (BEq a1 a2) (n1 =? n2)
-    | E_BLe (a1 a2 : aexp) (n1 n2 : nat) :
-        (aevalR a1 n1) ->
-        (aevalR a2 n2) ->
-        bevalR (BLe a1 a2) (n1 <=? n2)
-    | E_BNot (e : bexp) (b : bool) :
-        (bevalR e b) ->
-        bevalR (BNot e) (negb b)
-    | E_BAnd (e1 e2 : bexp) (b1 b2 : bool) :
-        (bevalR e1 b1) ->
-        (bevalR e2 b2) ->
-        bevalR (BAnd e1 e2) (andb b1 b2).
-
-Lemma aeval_l1 : forall a,
-    a ==> aeval a.
-Proof.
-    intros.
-    induction a;
-    simpl; constructor; try apply IHa1; try apply IHa2.
-Qed.
-
-Lemma beval_l1 : forall e,
-    bevalR e (beval e).
-Proof.
-    intros.
-    induction e.
-    - simpl. constructor.
-    - simpl. constructor.
-    - simpl. constructor; apply aeval_l1.
-    - simpl. constructor; apply aeval_l1.
-    - simpl. constructor. apply IHe.
-    - simpl. constructor; try apply IHe1; try apply IHe2.
-Qed.
-
-Theorem beval_iff_bevalR : forall e b,
-    (bevalR e b) <-> beval e = b.
-Proof.
-    split.
-    - intros H.
-      induction H; subst; try reflexivity.
-      + simpl.
-        apply aeval_iff_aevalR in H.
-        rewrite H.
-        apply aeval_iff_aevalR in H0.
-        rewrite H0.
-        reflexivity.
-      + simpl.
-        apply aeval_iff_aevalR in H.
-        rewrite H.
-        apply aeval_iff_aevalR in H0.
-        rewrite H0.
-        reflexivity.
-    - intros.
-      induction e.
-      + rewrite <- H. constructor.
-      + rewrite <- H. constructor.
-      + rewrite <- H. constructor; apply aeval_l1.
-      + rewrite <- H. constructor; apply aeval_l1.
-      + rewrite <- H. simpl. constructor. apply beval_l1.
-      + rewrite <- H. simpl. constructor; apply beval_l1.
-Qed.
+Definition fact_in_coq : com :=
+    <{
+    Z := X;
+    Y := 1;
+    while ~(Z = 0) do
+        Y := Y * Z;
+        Z := Z - 1
+    end
+    }>.
 
 End AExp.
