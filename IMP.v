@@ -77,6 +77,7 @@ Module AExp.
 
 Definition state := total_map nat.
 Definition empty_st := (_ !-> 0).
+Notation "x '!->' v" := (x !-> v ; empty_st) (at level 100).
 
 Inductive aexp : Type :=
     | ANum (n : nat)
@@ -165,14 +166,55 @@ Notation "'while' x 'do' y 'end'" :=
         (CWhile x y)
            (in custom com at level 89, x at level 99, y at level 99) : com_scope.
 
-Definition fact_in_coq : com :=
-    <{
-    Z := X;
-    Y := 1;
-    while ~(Z = 0) do
-        Y := Y * Z;
-        Z := Z - 1
-    end
-    }>.
+Reserved Notation
+    "st '=[' c ']=>' st'"
+    (at level 40, c custom com at level 99,
+     st constr, st' constr at next level).
+
+Inductive ceval : com -> state -> state -> Prop :=
+    | E_Skip : forall st,
+        st =[ skip ]=> st
+    | E_Asign : forall st a n x,
+        aeval st a = n ->
+        st =[ x := a ]=> (x !-> n ; st)
+    | E_Seq : forall st st' st'' c1 c2,
+        st =[ c1 ]=> st' ->
+        st' =[ c2 ]=> st'' ->
+        st =[ c1 ; c2 ]=> st''
+    | E_CIfTrue : forall st st' b c1 c2,
+        beval st b = true ->
+        st =[ c1 ]=> st' ->
+        st =[ if b then c1 else c2 end ]=> st'
+    | E_CIfFalse : forall st st' b c1 c2,
+        beval st b = false ->
+        st =[ c2 ]=> st' ->
+        st =[ if b then c1 else c2 end ]=> st'
+    | E_WhileFalse : forall st b c,
+        beval st b = false ->
+        st =[ while b do c end ]=> st
+    | E_WhileTrue : forall st st' st'' b c,
+        beval st b = true ->
+        st =[ c ]=> st' ->
+        st' =[ while b do c end ]=> st'' ->
+        st =[ while b do c end ]=> st''
+    where "st =[ c ]=> st'" := (ceval c st st').
+
+Example ceval_example1:
+    empty_st
+    =[
+       X := 2;
+       if (X <= 1)
+         then Y := 3
+         else Z := 4
+       end
+    ]=>
+    (Z !-> 4 ; X !-> 2).
+Proof.
+    apply E_Seq with (X !-> 2).
+    - apply E_Asign. simpl. reflexivity.
+    - apply E_CIfFalse.
+      + simpl. reflexivity.
+      + apply E_Asign. simpl. reflexivity.
+Qed.
 
 End AExp.
