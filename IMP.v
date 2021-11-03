@@ -217,4 +217,73 @@ Proof.
       + apply E_Asign. simpl. reflexivity.
 Qed.
 
+Theorem ceval_deterministic: forall c st st1 st2,
+    st =[ c ]=> st1 ->
+    st =[ c ]=> st2 ->
+    st1 = st2.
+Proof.
+    intros c st st1 st2 E1 E2.
+    generalize dependent st2.
+Abort.
+
 End AExp.
+
+
+(* memo *)
+Inductive ev : nat -> Prop :=
+    | ev_0 : ev 0
+    | ev_SS : forall n:nat, ev n -> ev (S (S n)).
+
+Theorem ev_inv : forall (n:nat),
+    ev n ->
+    (n=0) \/ (exists m, n=S(S m) /\ ev m).
+Proof.
+    intros n H.
+    destruct H as [| n' H'] eqn:HH.
+    - left. reflexivity.
+    - right. exists n'. split.
+      + reflexivity.
+      + apply H'.
+Qed.
+
+Theorem ev_minus2 : forall n,
+    ev n -> ev (pred (pred n)).
+Proof.
+    intros n H.
+    destruct H as [| n' H'] eqn:HH.
+    - simpl. apply ev_0.
+    - simpl. apply H'.
+Qed.
+
+Theorem evSS_ev : forall n,
+    ev (S (S n)) -> ev n.
+Proof.
+    intros n H.
+    apply ev_inv in H.
+    destruct H.
+    - discriminate H.
+    - destruct H as [n' [Hnm Hev]].
+      injection Hnm as Heq.
+      rewrite Heq.
+      apply Hev.
+Qed.
+
+Theorem evSS_ev' : forall n,
+    ev (S (S n)) -> ev n.
+Proof.
+    intros n H.
+    inversion H as [| n' H'].
+    apply H'.
+Qed.
+
+(*
+rewrite H0 in H.
+
+                              H0:M1=M2, H:P[M2], H':P[M1] |- Q
+                              -------------------------------- (->I)
+H0:M1=M2, H:P[M2] |- M1=M2    H0:M1=M2, H:P[M2] |- P[M1] -> Q
+------------------------------------------------------------- (=E)
+H0:M1=M2, H:P[M2] |- P[M2] -> Q                                       H0:M1=M2, H:P[M2] |- P[M2]
+------------------------------------------------------------------------------------------------ (->E)
+H0:M1=M2, H:P[M2] |- Q
+*)
